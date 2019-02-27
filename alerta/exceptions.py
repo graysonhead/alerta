@@ -1,9 +1,10 @@
 
 import traceback
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
 
 from flask import Response, current_app, jsonify
 from werkzeug.exceptions import HTTPException
+from werkzeug.routing import RoutingException
 
 
 class AlertaException(IOError):
@@ -60,7 +61,12 @@ class ExceptionHandlers:
         app.register_error_handler(Exception, handle_exception)
 
 
-def handle_http_error(error: HTTPException) -> Tuple[Response, int]:
+def handle_http_error(error: HTTPException) -> Union[Tuple[Response, int], Exception]:
+    # RoutingExceptions are used internally to trigger routing
+    # actions, such as slash redirects raising RequestRedirect.
+    if isinstance(error, RoutingException):
+        return error
+
     if error.code >= 500:
         current_app.logger.exception(error)
     return jsonify({
